@@ -1,9 +1,11 @@
 import { Camera, Mail, User } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useState } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 const ProfilePage = () => {
-  const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
+  const { authUser, isUpdatingProfile, updateProfile, logout } = useAuthStore();
   const [selectedimg, setSelectedImg] = useState(null);
 
   const handleImageUpload = (e) => {
@@ -19,6 +21,26 @@ const ProfilePage = () => {
       setSelectedImg(base64Image);
       await updateProfile({ profilePic: base64Image });
     };
+  };
+
+  const handleDeleteAccount = async () => {
+    if (window.confirm("Are you sure you want to delete your account?")) {
+      try {
+        await axios.delete("http://localhost:3000/api/auth/delete-account", {
+          withCredentials: true,
+        });
+        toast.success("Account deleted successfully");
+        logout(); // Log the user out after deleting the account
+      } catch (error) {
+        console.error(
+          "Error deleting account:",
+          error.response?.data?.message || error.message
+        );
+        toast.error(
+          error.response?.data?.message || "Failed to delete account"
+        );
+      }
+    }
   };
   return (
     <div className="h-screen pt-20">
@@ -97,6 +119,14 @@ const ProfilePage = () => {
               </div>
             </div>
           </div>
+        </div>
+        <div className="mt-6">
+          <button
+            onClick={handleDeleteAccount}
+            className="btn btn-error w-full"
+          >
+            Delete Account
+          </button>
         </div>
       </div>
     </div>

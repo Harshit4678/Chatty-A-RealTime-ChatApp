@@ -1,4 +1,5 @@
 import cloudinary from "../lib/cloudinary.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 
@@ -58,10 +59,48 @@ export const sendMessage = async (req, res) => {
     await newMessage.save();
 
     // todo : realTime funtionality goes here => socket.io
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
 
     res.status(201).json(newMessage);
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const deleteChat = async (req, res) => {
+  try {
+    const { id: receiverId } = req.params;
+    const senderId = req.user._id;
+
+    await Message.deleteMany({
+      $or: [
+        { senderId, receiverId },
+        { senderId: receiverId, receiverId: senderId },
+      ],
+    });
+
+    res.status(200).json({ message: "Chat deleted successfully" });
+  } catch (error) {
+    console.error("Error in deleteChat controller: ", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const clearChatHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    await Message.deleteMany({
+      $or: [{ senderId: userId }, { receiverId: userId }],
+    });
+
+    res.status(200).json({ message: "Chat history cleared successfully" });
+  } catch (error) {
+    console.error("Error in clearChatHistory controller: ", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };

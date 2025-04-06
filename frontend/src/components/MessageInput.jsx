@@ -1,18 +1,21 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatstore";
-import { Image, Send, X } from "lucide-react";
+import { Image, X, Smile, Send } from "lucide-react"; // Import Smile icon
+import EmojiPicker from "emoji-picker-react"; // Import emoji picker
 import toast from "react-hot-toast";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // State to toggle emoji picker
   const fileInputRef = useRef(null);
+  const emojiPickerRef = useRef(null); // Ref for the emoji picker container
   const { sendMessage } = useChatStore();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file.type.startsWith("image/")) {
-      toast.error("please select an image file");
+      toast.error("Please select an image file");
       return;
     }
 
@@ -46,6 +49,27 @@ const MessageInput = () => {
     }
   };
 
+  const handleEmojiClick = (emojiObject) => {
+    setText((prevText) => prevText + emojiObject.emoji); // Append selected emoji to the text
+  };
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="p-4 w-full">
       {imagePreview && (
@@ -67,11 +91,15 @@ const MessageInput = () => {
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-        <div className="flex-1 flex gap-2">
+      <form
+        onSubmit={handleSendMessage}
+        className="flex items-center gap-2 relative"
+      >
+        <div className="relative flex-1">
+          {/* Text Input */}
           <input
             type="text"
-            className="w-full input input-bordered rounded-lg input-sm  sm:input-md"
+            className="w-full input input-bordered rounded-lg input-sm sm:input-md pr-16" // Add padding to the right for buttons
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -85,20 +113,43 @@ const MessageInput = () => {
           />
           <button
             type="button"
-            className={`hidden sm:flex btn btn-circle ${
+            className={`absolute top-1/2 right-12 transform -translate-y-1/2 btn btn-circle btn-sm ${
               imagePreview ? "text-emerald-500" : "text-zinc-400"
             }`}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Image size={20} />
+            <Image size={18} />
           </button>
         </div>
+
+        {/* Emoji Picker Toggle Button */}
+        <button
+          type="button"
+          className="absolute top-1/2 right-12 transform -translate-y-1/2 btn btn-circle btn-sm"
+          onClick={() => setShowEmojiPicker((prev) => !prev)}
+        >
+          <Smile size={20} />
+        </button>
+
+        {/* Emoji Picker */}
+        {showEmojiPicker && (
+          <div
+            className={`absolute z-50 ${
+              window.innerWidth <= 640 // Check if the screen width is mobile size
+                ? "bottom-0 left-0 w-full h-[40vh] overflow-y-scroll bg-white shadow-lg rounded-t-lg"
+                : "bottom-14 right-1"
+            }`}
+            ref={emojiPickerRef}
+          >
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          </div>
+        )}
         <button
           type="submit"
-          className="btn btn-sm btn-circle"
+          className="btn btn-sm btn-circle text-gray-800 dark:text-white"
           disabled={!text.trim() && !imagePreview}
         >
-          <Send size={22} />
+          <Send size={20} className="text-white hover:divide-zinc-900" />
         </button>
       </form>
     </div>

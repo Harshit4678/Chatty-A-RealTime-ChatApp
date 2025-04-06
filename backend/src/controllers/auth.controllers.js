@@ -2,6 +2,7 @@ import cloudinary from "../lib/cloudinary.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
+import Message from "../models/message.model.js";
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -82,6 +83,25 @@ export const logout = (req, res) => {
   } catch (error) {
     console.log("Error in logout controller", error.message);
     res.status(500).json({ message: "internal Server Error" });
+  }
+};
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Delete the user from the database
+    await User.findByIdAndDelete(userId);
+
+    // Optionally, delete all messages associated with the user
+    await Message.deleteMany({
+      $or: [{ senderId: userId }, { receiverId: userId }],
+    });
+
+    res.status(200).json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Error in deleteAccount controller:", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 

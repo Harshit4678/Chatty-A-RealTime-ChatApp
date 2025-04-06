@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { LogOut, MessageSquare, Settings, User } from "lucide-react";
+import { LogOut, MessageSquare, Settings, User, Menu } from "lucide-react";
 
-const Navbar = () => {
+const Navbar = ({ setIsSidebarOpen }) => {
   const { logout, authUser } = useAuthStore();
 
   return (
@@ -13,6 +13,13 @@ const Navbar = () => {
       <div className="container mx-auto px-4 h-16">
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-8">
+            {/* Sidebar Toggle Button */}
+            <button
+              className="btn btn-sm btn-circle sm:hidden"
+              onClick={() => setIsSidebarOpen((prev) => !prev)}
+            >
+              <Menu size={22} />
+            </button>
             <Link
               to="/"
               className="flex items-center gap-2.5 hover:opacity-80 transition-all"
