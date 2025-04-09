@@ -1,13 +1,21 @@
-import { MoreVertical, Trash2, X } from "lucide-react";
-import { useChatStore } from "../store/useChatstore";
+import { MoreVertical, Trash2, X, Video } from "lucide-react";
+import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
 import { useState } from "react";
+import VideoCall from "./VideoCall";
+import { useVideoCallStore } from "../store/useVideoCallStore";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser, clearChat, deleteChat } =
     useChatStore();
   const { onlineUsers } = useAuthStore();
+  const isVideoCallActive = useVideoCallStore(
+    (state) => state.isVideoCallActive
+  );
+  const setIsVideoCallActive = useVideoCallStore(
+    (state) => state.setVideoCallActive
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleDeleteChat = async () => {
@@ -34,74 +42,104 @@ const ChatHeader = () => {
     }
   };
 
+  const startVideoCall = () => {
+    setIsVideoCallActive(true);
+  };
+
+  const endVideoCall = () => {
+    setIsVideoCallActive(false);
+  };
+
   return (
-    <div className="p-2 border-b border-base-300">
+    <div className="p-4 border-b border-gray-300 bg-gray-100">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {/* Avatar */}
           <div className="avatar">
-            <div className="size-10 rounded-full relative">
+            <div className="w-12 h-12 rounded-full overflow-hidden">
               <img
                 src={selectedUser.profilePic || "/avatar.png"}
                 alt={selectedUser.fullName}
+                className="object-cover"
               />
             </div>
           </div>
           {/* User info */}
           <div>
-            <h3 className="font-medium">{selectedUser.fullName}</h3>
-            <p className="text-small text-base-content/70">
-              {onlineUsers.includes(selectedUser._id) ? "Online" : "offline"}
+            <h3 className="text-lg font-semibold">{selectedUser.fullName}</h3>
+            <p
+              className={`text-sm ${
+                onlineUsers.includes(selectedUser._id)
+                  ? "text-green-500"
+                  : "text-gray-500"
+              }`}
+            >
+              {onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}
             </p>
           </div>
         </div>
 
-        {/* Dropdown button */}
-        <div className="relative">
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          {/* Video Call Button */}
           <button
-            onClick={() => setIsDropdownOpen((prev) => !prev)}
-            className="btn btn-sm btn-circle"
+            onClick={startVideoCall}
+            className="btn btn-sm btn-primary flex items-center gap-2"
           >
-            <MoreVertical size={18} />
+            <Video size={18} />
+            Video Call
           </button>
-          {isDropdownOpen && (
-            <div
-              className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg z-50 border border-gray-300"
-              onClick={() => setIsDropdownOpen(false)}
+
+          {/* Dropdown button */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
+              className="btn btn-sm btn-circle"
             >
-              <ul className="py-2">
-                <li>
-                  <button
-                    onClick={() => setSelectedUser(null)}
-                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-100 w-full text-left text-base font-semibold text-gray-900 antialiased"
-                  >
-                    <X size={20} />
-                    Close Chat
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={handleDeleteChat}
-                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-100 w-full text-left text-base font-semibold text-gray-900 antialiased"
-                  >
-                    <Trash2 size={20} />
-                    Delete Chat
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={handleClearChatHistory}
-                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-100 w-full text-left text-base font-semibold text-gray-900 antialiased"
-                  >
-                    <Trash2 size={20} />
-                    Clear Chat History
-                  </button>
-                </li>
-              </ul>
-            </div>
-          )}
+              <MoreVertical size={18} />
+            </button>
+            {isDropdownOpen && (
+              <div
+                className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg z-50 border border-gray-300"
+                onClick={() => setIsDropdownOpen(false)}
+              >
+                <ul className="py-2">
+                  <li>
+                    <button
+                      onClick={() => setSelectedUser(null)}
+                      className="flex items-center gap-2 px-4 py-3 hover:bg-gray-100 w-full text-left text-base font-semibold text-gray-900"
+                    >
+                      <X size={20} />
+                      Close Chat
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={handleDeleteChat}
+                      className="flex items-center gap-2 px-4 py-3 hover:bg-gray-100 w-full text-left text-base font-semibold text-gray-900"
+                    >
+                      <Trash2 size={20} />
+                      Delete Chat
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={handleClearChatHistory}
+                      className="flex items-center gap-2 px-4 py-3 hover:bg-gray-100 w-full text-left text-base font-semibold text-gray-900"
+                    >
+                      <Trash2 size={20} />
+                      Clear Chat History
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Video Call Component */}
+      {isVideoCallActive && <VideoCall onEndCall={endVideoCall} />}
     </div>
   );
 };
