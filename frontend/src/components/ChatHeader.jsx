@@ -1,10 +1,10 @@
 import { MoreVertical, Trash2, X, Video } from "lucide-react";
-import { useChatStore } from "../store/useChatStore";
-import { useAuthStore } from "../store/useAuthStore";
+import { useChatStore } from "../store/useChatStore.js";
+import { useAuthStore } from "../store/useAuthStore.js";
 import toast from "react-hot-toast";
 import { useState } from "react";
-import VideoCall from "./VideoCall";
-import { useVideoCallStore } from "../store/useVideoCallStore";
+import VideoCall from "./VideoCall.jsx";
+import { useVideoCallStore } from "../store/useVideoCallStore.js";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser, clearChat, deleteChat } =

@@ -1,5 +1,5 @@
 import React from "react";
-import { THEMES } from "../constants";
+import { THEMES } from "../constants/index.js";
 import { useThemeStore } from "../store/useThemeStore.js";
 import { Send } from "lucide-react";
 

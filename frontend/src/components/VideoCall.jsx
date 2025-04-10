@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useAuthStore } from "../store/useAuthStore";
-import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore.js";
+import { useChatStore } from "../store/useChatStore.js";
 
 const VideoCall = ({ onEndCall }) => {
   const { socket } = useAuthStore();
@@ -123,7 +123,7 @@ const VideoCall = ({ onEndCall }) => {
         await peerConnection.current.setLocalDescription(answer);
 
         socket.emit("answer-call", { answer, to: from });
-      } catch (error) {
+      } catch {
         alert("Unable to handle incoming call.");
         onEndCall();
       }

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useAuthStore } from "../store/useAuthStore";
+import { useAuthStore } from "../store/useAuthStore.js";
 import { LogOut, MessageSquare, Settings, User, Menu } from "lucide-react";
 
 const Navbar = ({ setIsSidebarOpen }) => {
