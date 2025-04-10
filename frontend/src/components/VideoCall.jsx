@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
@@ -8,7 +8,7 @@ const VideoCall = ({ onEndCall }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnection = useRef(null);
-  const [isCalling, setIsCalling] = useState(false);
+  // Removed unused isCalling state
 
   useEffect(() => {
     const checkDevices = async () => {
@@ -78,7 +78,7 @@ const VideoCall = ({ onEndCall }) => {
         await peerConnection.current.setLocalDescription(offer);
 
         socket.emit("call-user", { offer, to: selectedUser._id });
-        setIsCalling(true);
+        // Removed unused setIsCalling call
       } catch (error) {
         console.error("Error accessing media devices:", error);
         alert(

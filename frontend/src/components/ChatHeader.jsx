@@ -51,7 +51,7 @@ const ChatHeader = () => {
   };
 
   return (
-    <div className="p-4 border-b border-gray-300 bg-gray-100">
+    <div className="p-4 border-b border-gray-300  bg-transparent backdrop-blur-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* Avatar */}
