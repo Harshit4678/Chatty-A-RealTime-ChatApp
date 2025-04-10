@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { axiosIntance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import { useChatStore } from "./useChatStore"; // Import useChatStore from its module
+import { useChatStore } from "./useChatStore.js"; // Import useChatStore from its module
 
 const BASE_URL =
   import.meta.env.MODE === "development" ? "http://localhost:3000" : "/";

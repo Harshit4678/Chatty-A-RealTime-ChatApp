@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { useChatStore } from "../store/useChatstore";
+import { useChatStore } from "../store/useChatStore";
 import { Image, X, Smile, Send } from "lucide-react"; // Import Smile icon
 import EmojiPicker from "emoji-picker-react"; // Import emoji picker
 import toast from "react-hot-toast";
