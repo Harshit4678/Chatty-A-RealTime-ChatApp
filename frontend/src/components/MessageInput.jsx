@@ -3,6 +3,7 @@ import { useChatStore } from "../store/useChatStore.js";
 import { Image, X, Smile, Send } from "lucide-react"; // Import Smile icon
 import EmojiPicker from "emoji-picker-react"; // Import emoji picker
 import toast from "react-hot-toast";
+import imageCompression from "browser-image-compression"; // Import image compression library
 
 const MessageInput = () => {
   const [text, setText] = useState("");
@@ -12,18 +13,29 @@ const MessageInput = () => {
   const emojiPickerRef = useRef(null); // Ref for the emoji picker container
   const { sendMessage } = useChatStore();
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+    try {
+      // Compress the image
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 1, // Compress to 1MB
+        maxWidthOrHeight: 1024, // Resize to 1024px max
+      });
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (error) {
+      console.error("Image compression failed:", error);
+      toast.error("Failed to process image");
+    }
   };
 
   const removeImage = () => {

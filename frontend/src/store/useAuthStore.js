@@ -23,9 +23,11 @@ export const useAuthStore = create((set, get) => ({
       set({ authUser: res.data });
       get().connectSocket();
     } catch (error) {
-      console.error("Error in checkAuth:", error);
+      // Only show "Session expired" if the user was previously logged in
+      if (get().authUser) {
+        toast.error("Session expired. Please log in again.");
+      }
       set({ authUser: null });
-      toast.error("Session expired. Please log in again.");
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -65,7 +67,7 @@ export const useAuthStore = create((set, get) => ({
       await axiosIntance.post("/auth/logout");
       set({ authUser: null });
       toast.success("Logged out successfully");
-      get().disconnectSocket(); // Corrected function name
+      get().disconnectSocket();
     } catch (error) {
       toast.error(error.response.data.message);
     }
@@ -123,7 +125,4 @@ export const useAuthStore = create((set, get) => ({
       set({ socket: null });
     }
   },
-  // disconnectSocket: () => {
-  //   if (get().socket?.connected) get().socket.disconnect();
-  // },
 }));

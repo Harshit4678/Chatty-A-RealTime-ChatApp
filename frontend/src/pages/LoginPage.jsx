@@ -21,10 +21,10 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* left side*/}
-      <div className="flex flex-col border border-zinc-700 rounded-lg justify-center items-center p-5 sm:p-12">
-        <div className="w-full max-w-md space-y-8">
+      <div className="flex flex-col border border-zinc-700 rounded-lg justify-center items-center p-14 lg:p-5 mt-16 lg:mt-0">
+        <div className="w-full max-w-md space-y-6">
           {/*Logo */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-4">
             <div className="flex flex-col items-center gap-2 group">
               <div
                 className="size-12 rounded-xl bg-primary opacity-80 flex items-center justify-center 
@@ -38,7 +38,7 @@ const LoginPage = () => {
           </div>
 
           {/*Signup form*/}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="form-control">
               <label className="label">
                 <span className="lebel-text font-medium">Email</span>
