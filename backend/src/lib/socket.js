@@ -33,7 +33,12 @@ io.on("connection", (socket) => {
   socket.on("call-user", ({ offer, to }) => {
     const receiverSocketId = userSocketMap[to];
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("incoming-call", { offer, from: userId });
+      const caller = { fullName: user.fullName, profilePic: user.profilePic }; // Add caller info
+      io.to(receiverSocketId).emit("incoming-call", {
+        offer,
+        from: userId,
+        caller,
+      });
     } else {
       io.to(socket.id).emit("call-error", { message: "User is not online." });
     }

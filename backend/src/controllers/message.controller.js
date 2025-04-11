@@ -44,9 +44,13 @@ export const sendMessage = async (req, res) => {
 
     let imageUrl;
     if (image) {
-      // upload base64 image to cloudinary
-      const uploadResponse = await cloudinary.uploader.upload(image);
-      imageUrl = uploadResponse.secure_url;
+      try {
+        const uploadResponse = await cloudinary.uploader.upload(image);
+        imageUrl = uploadResponse.secure_url;
+      } catch (error) {
+        console.error("Cloudinary upload error:", error.message);
+        return res.status(500).json({ message: "Image upload failed" });
+      }
     }
 
     const newMessage = new Message({
@@ -58,7 +62,6 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
-    // todo : realTime funtionality goes here => socket.io
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
