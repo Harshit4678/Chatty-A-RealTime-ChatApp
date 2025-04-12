@@ -59,17 +59,7 @@ const VideoCall = ({ onEndCall }) => {
 
     const handleIncomingCall = async ({ offer, from }) => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        localStreamRef.current = stream;
-        localVideoRef.current.srcObject = stream;
-
         peerConnection.current = new RTCPeerConnection();
-        stream
-          .getTracks()
-          .forEach((track) => peerConnection.current.addTrack(track, stream));
 
         peerConnection.current.ontrack = (event) => {
           remoteVideoRef.current.srcObject = event.streams[0];
@@ -105,8 +95,14 @@ const VideoCall = ({ onEndCall }) => {
       );
     });
 
-    socket.on("ice-candidate", ({ candidate }) => {
-      peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+    socket.on("ice-candidate", async ({ candidate }) => {
+      try {
+        await peerConnection.current.addIceCandidate(
+          new RTCIceCandidate(candidate)
+        );
+      } catch (error) {
+        console.error("Error adding ICE candidate:", error);
+      }
     });
 
     socket.on("call-ended", () => {
@@ -123,17 +119,26 @@ const VideoCall = ({ onEndCall }) => {
       socket.off("ice-candidate");
       socket.off("call-ended");
 
-      if (peerConnection.current) peerConnection.current.close();
+      if (peerConnection.current) {
+        peerConnection.current.close();
+        peerConnection.current = null; // Reset peerConnection
+      }
+
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
-        localVideoRef.current.srcObject = null;
-        remoteVideoRef.current.srcObject = null;
+        localStreamRef.current = null;
       }
+
+      if (localVideoRef.current) localVideoRef.current.srcObject = null;
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     };
   }, [socket, selectedUser, onEndCall]);
 
   const endCall = () => {
-    if (peerConnection.current) peerConnection.current.close();
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null; // Reset peerConnection
+    }
 
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());

@@ -15,25 +15,44 @@ const MessageInput = () => {
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
+    if (!file) {
+      toast.error("No file selected");
+      return;
+    }
+
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
     }
 
     try {
-      // Compress the image
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        console.log("Mobile device detected, skipping compression");
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      console.log("Compressing image...");
       const compressedFile = await imageCompression(file, {
-        maxSizeMB: 3, // Compress to 3MB
-        maxWidthOrHeight: 3840, // Resize to 3840px max
+        maxSizeMB: 3,
+        maxWidthOrHeight: 3840,
       });
+
+      console.log("Compressed file:", compressedFile);
 
       const reader = new FileReader();
       reader.onloadend = () => {
+        console.log("Image preview ready");
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(compressedFile);
     } catch (error) {
-      console.error("Image compression failed:", error);
+      console.error("Error processing image:", error);
       toast.error("Failed to process image");
     }
   };

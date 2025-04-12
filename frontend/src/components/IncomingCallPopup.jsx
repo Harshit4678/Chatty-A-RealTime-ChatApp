@@ -1,4 +1,3 @@
-// components/IncomingCallPopup.jsx
 import { useVideoCallStore } from "../store/useVideoCallStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useChatStore } from "../store/useChatStore.js";
@@ -10,12 +9,21 @@ const IncomingCallPopup = () => {
 
   if (!incomingCall || incomingCall.from._id === authUser._id) return null;
 
-  const handleAccept = () => {
-    setSelectedUser({ ...incomingCall.from });
-    setIncomingCall(null);
-    setInCall(true);
+  const handleAccept = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      setSelectedUser({ ...incomingCall.from });
+      setIncomingCall(null);
+      setInCall(true);
 
-    socket.emit("accept-call", { to: incomingCall.from._id });
+      socket.emit("accept-call", { to: incomingCall.from._id });
+    } catch (error) {
+      console.error("Error accessing media devices:", error);
+      alert("Failed to access camera/microphone.");
+    }
   };
 
   const handleReject = () => {
