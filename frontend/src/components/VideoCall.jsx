@@ -145,18 +145,37 @@ const VideoCall = ({ onEndCall }) => {
       localStreamRef.current = null;
     }
 
-    if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
 
     socket.emit("call-ended", { to: selectedUser._id });
     onEndCall();
   };
 
   return (
-    <div className="video-call-container">
-      <video ref={localVideoRef} autoPlay muted className="local-video" />
-      <video ref={remoteVideoRef} autoPlay className="remote-video" />
-      <button onClick={endCall} className="btn btn-error mt-4">
+    <div className="video-call-container relative w-full h-full">
+      {/* Receiver's Video */}
+      <video
+        ref={remoteVideoRef}
+        autoPlay
+        className="remote-video w-full h-full object-cover rounded-lg"
+      />
+      {/* Sender's Video */}
+      <video
+        ref={localVideoRef}
+        autoPlay
+        muted
+        className="local-video absolute bottom-4 left-4 w-32 h-32 object-cover rounded-lg border-2 border-white shadow-lg"
+      />
+      <button
+        onClick={endCall}
+        className="btn btn-error absolute top-4 right-4"
+      >
         End Call
       </button>
     </div>

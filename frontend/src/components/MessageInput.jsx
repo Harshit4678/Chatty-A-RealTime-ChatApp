@@ -39,8 +39,8 @@ const MessageInput = () => {
 
       console.log("Compressing image...");
       const compressedFile = await imageCompression(file, {
-        maxSizeMB: 3,
-        maxWidthOrHeight: 3840,
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
       });
 
       console.log("Compressed file:", compressedFile);

@@ -11,13 +11,19 @@ const IncomingCallPopup = () => {
 
   const handleAccept = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
       });
       setSelectedUser({ ...incomingCall.from });
       setIncomingCall(null);
       setInCall(true);
+
+      // Attach the stream to the local video element
+      const localVideoRef = document.querySelector(".local-video");
+      if (localVideoRef) {
+        localVideoRef.srcObject = stream;
+      }
 
       socket.emit("accept-call", { to: incomingCall.from._id });
     } catch (error) {
@@ -32,7 +38,7 @@ const IncomingCallPopup = () => {
   };
 
   return (
-    <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed top-40 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white p-6 rounded shadow-md text-center">
         <img
           src={incomingCall.from.profilePic || "/avatar.png"}

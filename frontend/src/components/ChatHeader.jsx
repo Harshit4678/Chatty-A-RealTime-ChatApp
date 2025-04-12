@@ -1,4 +1,4 @@
-import { MoreVertical, Trash2, X, Video } from "lucide-react";
+import { MoreVertical, Trash2, X, VideoIcon } from "lucide-react";
 import { useChatStore } from "../store/useChatStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import toast from "react-hot-toast";
@@ -81,10 +81,9 @@ const ChatHeader = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={startVideoCall}
-            className="btn btn-sm btn-primary flex items-center gap-2"
+            className="btn btn-sm btn-circle flex items-center gap-2"
           >
-            <Video size={18} />
-            Video Call
+            <VideoIcon size={18} />
           </button>
 
           <div className="relative">
