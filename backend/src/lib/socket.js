@@ -11,12 +11,12 @@ const io = new Server(server, {
   },
 });
 
+// used to store online users
+const userSocketMap = {}; // { userId: socketId }
+
 export function getReceiverSocketId(userId) {
   return userSocketMap[userId];
 }
-
-// used to store online users
-const userSocketMap = {}; // {userId: socketId}
 
 io.on("connection", (socket) => {
   console.log("A user connected", socket.id);
@@ -30,14 +30,12 @@ io.on("connection", (socket) => {
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   // Handle WebRTC signaling
-  socket.on("call-user", ({ offer, to }) => {
+  socket.on("call-user", ({ offer, to, from }) => {
     const receiverSocketId = userSocketMap[to];
     if (receiverSocketId) {
-      const caller = { fullName: user.fullName, profilePic: user.profilePic }; // Add caller info
       io.to(receiverSocketId).emit("incoming-call", {
         offer,
-        from: userId,
-        caller,
+        from, // includes fullName, profilePic, _id
       });
     } else {
       io.to(socket.id).emit("call-error", { message: "User is not online." });
@@ -55,6 +53,13 @@ io.on("connection", (socket) => {
     const receiverSocketId = userSocketMap[to];
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("ice-candidate", { candidate });
+    }
+  });
+
+  socket.on("call-ended", ({ to }) => {
+    const receiverSocketId = userSocketMap[to];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("call-ended");
     }
   });
 

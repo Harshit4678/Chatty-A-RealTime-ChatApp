@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { axiosIntance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import { useChatStore } from "./useChatStore.js";
+// import { useChatStore } from "./useChatStore.js";
+import { useVideoCallStore } from "./useVideoCallStore.js";
 
 const BASE_URL =
   import.meta.env.MODE === "development" ? "http://localhost:3000" : "/";
@@ -22,7 +23,7 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosIntance.get("/auth/check");
       set({ authUser: res.data });
       get().connectSocket();
-    } catch (error) {
+    } catch {
       // Only show "Session expired" if the user was previously logged in
       if (get().authUser) {
         toast.error("Session expired. Please log in again.");
@@ -105,16 +106,23 @@ export const useAuthStore = create((set, get) => ({
     });
 
     // Listen for incoming calls
-    socket.on("incoming-call", ({ from }) => {
-      const { setSelectedUser } = useChatStore.getState();
-      setSelectedUser({ _id: from }); // Automatically select the caller
-      toast.success("Incoming video call!");
-      // Trigger the video call UI
-      set({ isVideoCallActive: true });
+    socket.on("incoming-call", ({ from, offer }) => {
+      const { setIncomingCall, setVideoCallActive } =
+        useVideoCallStore.getState();
+      setIncomingCall({ from, offer });
+      setVideoCallActive(true);
     });
 
     socket.on("call-error", ({ message }) => {
       toast.error(message);
+    });
+
+    socket.on("call-ended", () => {
+      const { setInCall, setVideoCallActive, setIncomingCall } =
+        useVideoCallStore.getState();
+      setInCall(false);
+      setVideoCallActive(false);
+      setIncomingCall(null);
     });
   },
 

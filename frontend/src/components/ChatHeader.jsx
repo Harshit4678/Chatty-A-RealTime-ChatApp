@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useState } from "react";
 import VideoCall from "./VideoCall.jsx";
 import { useVideoCallStore } from "../store/useVideoCallStore.js";
+import IncomingCallPopup from "./IncomingCallPopup.jsx";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser, clearChat, deleteChat } =
@@ -54,7 +55,6 @@ const ChatHeader = () => {
     <div className="p-4 border-b border-gray-300  bg-transparent backdrop-blur-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {/* Avatar */}
           <div className="avatar">
             <div className="w-12 h-12 rounded-full overflow-hidden">
               <img
@@ -64,7 +64,6 @@ const ChatHeader = () => {
               />
             </div>
           </div>
-          {/* User info */}
           <div>
             <h3 className="text-lg font-semibold">{selectedUser.fullName}</h3>
             <p
@@ -79,9 +78,7 @@ const ChatHeader = () => {
           </div>
         </div>
 
-        {/* Action buttons */}
         <div className="flex items-center gap-2">
-          {/* Video Call Button */}
           <button
             onClick={startVideoCall}
             className="btn btn-sm btn-primary flex items-center gap-2"
@@ -90,7 +87,6 @@ const ChatHeader = () => {
             Video Call
           </button>
 
-          {/* Dropdown button */}
           <div className="relative">
             <button
               onClick={() => setIsDropdownOpen((prev) => !prev)}
@@ -138,8 +134,8 @@ const ChatHeader = () => {
         </div>
       </div>
 
-      {/* Video Call Component */}
       {isVideoCallActive && <VideoCall onEndCall={endVideoCall} />}
+      <IncomingCallPopup />
     </div>
   );
 };
