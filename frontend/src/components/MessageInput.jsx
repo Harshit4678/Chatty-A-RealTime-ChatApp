@@ -26,21 +26,10 @@ const MessageInput = () => {
     }
 
     try {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        console.log("Mobile device detected, skipping compression");
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreview(reader.result);
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-
       console.log("Compressing image...");
       const compressedFile = await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1024,
+        maxSizeMB: 1, // Limit the size to 1MB
+        maxWidthOrHeight: 1024, // Resize to a maximum dimension of 1024px
       });
 
       console.log("Compressed file:", compressedFile);
