@@ -8,34 +8,22 @@ const VideoCall = ({ onEndCall }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnection = useRef(null);
+  const localStreamRef = useRef(null); // to store the media stream for cleanup
 
   useEffect(() => {
-    const checkDevices = async () => {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const hasVideo = devices.some((d) => d.kind === "videoinput");
-      const hasAudio = devices.some((d) => d.kind === "audioinput");
-
-      if (!hasVideo && !hasAudio) {
-        alert("No camera or microphone detected.");
-        onEndCall();
-        return false;
-      }
-      return { video: hasVideo, audio: hasAudio };
-    };
-
-    const startCaller = async () => {
-      const constraints = await checkDevices();
-      if (!constraints) return;
-
+    const initCaller = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        localStreamRef.current = stream;
         localVideoRef.current.srcObject = stream;
 
         peerConnection.current = new RTCPeerConnection();
-
-        stream.getTracks().forEach((track) => {
-          peerConnection.current.addTrack(track, stream);
-        });
+        stream
+          .getTracks()
+          .forEach((track) => peerConnection.current.addTrack(track, stream));
 
         peerConnection.current.ontrack = (event) => {
           remoteVideoRef.current.srcObject = event.streams[0];
@@ -71,17 +59,17 @@ const VideoCall = ({ onEndCall }) => {
 
     const handleIncomingCall = async ({ offer, from }) => {
       try {
-        const constraints = await checkDevices();
-        if (!constraints) return;
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        localStreamRef.current = stream;
         localVideoRef.current.srcObject = stream;
 
         peerConnection.current = new RTCPeerConnection();
-
-        stream.getTracks().forEach((track) => {
-          peerConnection.current.addTrack(track, stream);
-        });
+        stream
+          .getTracks()
+          .forEach((track) => peerConnection.current.addTrack(track, stream));
 
         peerConnection.current.ontrack = (event) => {
           remoteVideoRef.current.srcObject = event.streams[0];
@@ -99,7 +87,6 @@ const VideoCall = ({ onEndCall }) => {
         await peerConnection.current.setRemoteDescription(
           new RTCSessionDescription(offer)
         );
-
         const answer = await peerConnection.current.createAnswer();
         await peerConnection.current.setLocalDescription(answer);
 
@@ -123,13 +110,11 @@ const VideoCall = ({ onEndCall }) => {
     });
 
     socket.on("call-ended", () => {
-      if (peerConnection.current) peerConnection.current.close();
-      onEndCall();
+      endCall();
     });
 
-    // Only start call if this user is the caller
     if (selectedUser && selectedUser._id !== authUser._id) {
-      startCaller();
+      initCaller();
     }
 
     return () => {
@@ -139,13 +124,25 @@ const VideoCall = ({ onEndCall }) => {
       socket.off("call-ended");
 
       if (peerConnection.current) peerConnection.current.close();
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+        localVideoRef.current.srcObject = null;
+        remoteVideoRef.current.srcObject = null;
+      }
     };
   }, [socket, selectedUser, onEndCall]);
 
   const endCall = () => {
-    if (peerConnection.current) {
-      peerConnection.current.close();
+    if (peerConnection.current) peerConnection.current.close();
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
     }
+
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
     socket.emit("call-ended", { to: selectedUser._id });
     onEndCall();
   };

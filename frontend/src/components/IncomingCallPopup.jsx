@@ -5,13 +5,16 @@ import { useChatStore } from "../store/useChatStore.js";
 
 const IncomingCallPopup = () => {
   const { incomingCall, setIncomingCall, setInCall } = useVideoCallStore();
-  const { socket } = useAuthStore();
+  const { socket, authUser } = useAuthStore();
   const { setSelectedUser } = useChatStore();
+
+  if (!incomingCall || incomingCall.from._id === authUser._id) return null;
 
   const handleAccept = () => {
     setSelectedUser({ ...incomingCall.from });
     setIncomingCall(null);
     setInCall(true);
+
     socket.emit("accept-call", { to: incomingCall.from._id });
   };
 
@@ -20,10 +23,8 @@ const IncomingCallPopup = () => {
     setIncomingCall(null);
   };
 
-  if (!incomingCall) return null;
-
   return (
-    <div className="fixed top-40 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white p-6 rounded shadow-md text-center">
         <img
           src={incomingCall.from.profilePic || "/avatar.png"}
