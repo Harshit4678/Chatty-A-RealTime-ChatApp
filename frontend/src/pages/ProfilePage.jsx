@@ -3,24 +3,36 @@ import { useAuthStore } from "../store/useAuthStore.js";
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import imageCompression from "browser-image-compression";
 
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile, logout } = useAuthStore();
   const [selectedimg, setSelectedImg] = useState(null);
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    try {
+      // Compress the image
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 1, // Limit the size to 1MB
+        maxWidthOrHeight: 1024, // Resize to a maximum dimension of 1024px
+      });
 
-    reader.readAsDataURL(file);
+      const reader = new FileReader();
+      reader.readAsDataURL(compressedFile);
 
-    reader.onload = async () => {
-      const base64Image = reader.result;
-      setSelectedImg(base64Image);
-      await updateProfile({ profilePic: base64Image });
-    };
+      reader.onload = async () => {
+        const base64Image = reader.result;
+        setSelectedImg(base64Image);
+        await updateProfile({ profilePic: base64Image });
+        toast.success("Profile picture updated successfully!");
+      };
+    } catch (error) {
+      console.error("Error compressing or uploading image:", error);
+      toast.error("Failed to upload image. Please try again.");
+    }
   };
 
   const handleDeleteAccount = async () => {
