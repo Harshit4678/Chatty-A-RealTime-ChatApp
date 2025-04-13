@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useChatStore } from "../store/useChatStore.js";
 
-const VideoCall = ({ onEndCall }) => {
+const VideoCall = ({ onEndCall, isCaller }) => {
   const { authUser, socket } = useAuthStore();
   const { selectedUser } = useChatStore();
   const localVideoRef = useRef(null);
@@ -159,18 +159,18 @@ const VideoCall = ({ onEndCall }) => {
 
   return (
     <div className="video-call-container relative w-full h-full">
-      {/* Receiver's Video */}
+      {/* Full-Screen Video */}
       <video
-        ref={remoteVideoRef}
+        ref={isCaller ? remoteVideoRef : localVideoRef}
         autoPlay
-        className="remote-video w-full h-full object-cover rounded-lg"
+        className="full-video w-full h-full object-cover rounded-lg"
       />
-      {/* Sender's Video */}
+      {/* Small Box Video */}
       <video
-        ref={localVideoRef}
+        ref={isCaller ? localVideoRef : remoteVideoRef}
         autoPlay
         muted
-        className="local-video absolute bottom-4 left-4 w-32 h-32 object-cover rounded-lg border-2 border-white shadow-lg"
+        className="small-video absolute bottom-4 left-4 w-32 h-32 object-cover rounded-lg border-2 border-white shadow-lg"
       />
       <button
         onClick={endCall}
