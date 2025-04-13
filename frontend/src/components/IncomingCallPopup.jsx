@@ -1,59 +1,50 @@
-import { useVideoCallStore } from "../store/useVideoCallStore.js";
-import { useAuthStore } from "../store/useAuthStore.js";
-import { useChatStore } from "../store/useChatStore.js";
+import React from "react";
+import { useVideoCallStore } from "../store/useVideoCallStore";
+import { useAuthStore } from "../store/useAuthStore";
 
 const IncomingCallPopup = () => {
   const { incomingCall, setIncomingCall, setInCall } = useVideoCallStore();
   const { socket, authUser } = useAuthStore();
-  const { setSelectedUser } = useChatStore();
 
+  // If there's no incoming call or the call is from the current user, don't show the popup
   if (!incomingCall || incomingCall.from._id === authUser._id) return null;
 
   const handleAccept = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      setSelectedUser({ ...incomingCall.from });
-      setIncomingCall(null);
       setInCall(true);
-
-      // Attach the stream to the local video element
-      const localVideoRef = document.querySelector(".local-video");
-      if (localVideoRef) {
-        localVideoRef.srcObject = stream;
-      }
-
-      socket.emit("accept-call", { to: incomingCall.from._id });
+      socket.emit("accept-call", {
+        to: incomingCall.from._id,
+        answer: true,
+      });
+      setIncomingCall(null);
     } catch (error) {
-      console.error("Error accessing media devices:", error);
-      alert("Failed to access camera/microphone.");
+      console.error("Error accepting call:", error);
     }
   };
 
   const handleReject = () => {
-    socket.emit("call-ended", { to: incomingCall.from._id });
+    socket.emit("reject-call", { to: incomingCall.from._id });
     setIncomingCall(null);
   };
 
   return (
-    <div className="fixed top-40 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded shadow-md text-center">
-        <img
-          src={incomingCall.from.profilePic || "/avatar.png"}
-          alt="Caller"
-          className="w-16 h-16 rounded-full mx-auto mb-4"
-        />
-        <h2 className="text-xl font-semibold">
-          {incomingCall.from.fullName} is calling...
+    <div className="incoming-call-popup fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="popup-content bg-white p-6 rounded-lg shadow-lg text-center">
+        <h2 className="text-lg font-semibold mb-4">
+          Incoming Call from {incomingCall.from.name}
         </h2>
-        <div className="mt-4 flex justify-center gap-4">
-          <button className="btn btn-success" onClick={handleAccept}>
-            Receive Call
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={handleAccept}
+            className="btn btn-success px-4 py-2 rounded-lg"
+          >
+            Accept
           </button>
-          <button className="btn btn-error" onClick={handleReject}>
-            Decline
+          <button
+            onClick={handleReject}
+            className="btn btn-error px-4 py-2 rounded-lg"
+          >
+            Reject
           </button>
         </div>
       </div>

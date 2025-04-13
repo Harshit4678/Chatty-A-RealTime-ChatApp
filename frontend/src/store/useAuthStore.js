@@ -1,9 +1,7 @@
 import { create } from "zustand";
-import axios from "axios";
 import { axiosIntance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-// import { useChatStore } from "./useChatStore.js";
 import { useVideoCallStore } from "./useVideoCallStore.js";
 
 const BASE_URL =
@@ -78,11 +76,7 @@ export const useAuthStore = create((set, get) => ({
   updateProfile: async (data) => {
     set({ isUpdatingProfile: true });
     try {
-      const response = await axios.put(
-        "http://localhost:3000/api/auth/update-profile",
-        data,
-        { withCredentials: true }
-      );
+      const response = await axiosIntance.put("/auth/update-profile", data);
       if (response.status === 200) {
         set({ authUser: response.data }); // Update the user state
         toast.success("Profile updated successfully!");

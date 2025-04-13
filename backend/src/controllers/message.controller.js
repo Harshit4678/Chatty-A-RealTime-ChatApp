@@ -79,12 +79,16 @@ export const deleteChat = async (req, res) => {
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
-    await Message.deleteMany({
+    const result = await Message.deleteMany({
       $or: [
         { senderId, receiverId },
         { senderId: receiverId, receiverId: senderId },
       ],
     });
+
+    if (result.deletedCount === 0) {
+      return res.status(200).json({ message: "No messages to delete." });
+    }
 
     res.status(200).json({ message: "Chat deleted successfully" });
   } catch (error) {

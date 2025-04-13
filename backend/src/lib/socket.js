@@ -11,7 +11,7 @@ const io = new Server(server, {
   },
 });
 
-// used to store online users
+// Used to store online users
 const userSocketMap = {}; // { userId: socketId }
 
 export function getReceiverSocketId(userId) {
@@ -24,49 +24,56 @@ io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) {
     userSocketMap[userId] = socket.id;
-    console.log("User connected:", userId, "Socket ID:", socket.id);
+    io.emit("getOnlineUsers", Object.keys(userSocketMap));
   }
 
-  io.emit("getOnlineUsers", Object.keys(userSocketMap));
-
-  // Handle WebRTC signaling
+  // Handle call initiation
   socket.on("call-user", ({ offer, to, from }) => {
-    const receiverSocketId = userSocketMap[to];
+    const receiverSocketId = getReceiverSocketId(to);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("incoming-call", {
-        offer,
         from,
-        senderSocketId: socket.id, // ADD THIS LINE
+        offer,
+        senderSocketId: socket.id,
       });
     } else {
-      io.to(socket.id).emit("call-error", { message: "User is not online." });
+      io.to(socket.id).emit("call-error", { message: "User is offline." });
     }
   });
 
-  socket.on("answer-call", ({ answer, to }) => {
-    const callerSocketId = userSocketMap[to];
-    if (callerSocketId) {
-      io.to(callerSocketId).emit("call-answered", { answer });
-    }
-  });
-
-  socket.on("ice-candidate", ({ candidate, to }) => {
-    const receiverSocketId = userSocketMap[to];
+  // Handle call acceptance
+  socket.on("accept-call", ({ to, answer }) => {
+    const receiverSocketId = getReceiverSocketId(to);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("ice-candidate", { candidate });
+      io.to(receiverSocketId).emit("call-accepted", { answer });
     }
   });
 
-  socket.on("call-ended", ({ to }) => {
-    const receiverSocketId = userSocketMap[to];
+  // Handle call rejection
+  socket.on("reject-call", ({ to }) => {
+    const receiverSocketId = getReceiverSocketId(to);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("call-ended");
+      io.to(receiverSocketId).emit("call-rejected");
     }
   });
 
+  // Handle ICE candidate exchange
+  socket.on("send-ice-candidate", ({ candidate, to }) => {
+    const receiverSocketId = getReceiverSocketId(to);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("receive-ice-candidate", { candidate });
+    }
+  });
+
+  // Handle user disconnection
   socket.on("disconnect", () => {
     console.log("A user disconnected", socket.id);
-    delete userSocketMap[userId];
+    for (const [userId, socketId] of Object.entries(userSocketMap)) {
+      if (socketId === socket.id) {
+        delete userSocketMap[userId];
+        break;
+      }
+    }
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 });

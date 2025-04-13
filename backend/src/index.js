@@ -16,7 +16,7 @@ dotenv.config();
 const PORT = process.env.PORT;
 const __dirname = path.resolve();
 // Middleware to parse JSON
-app.use(express.json({ limit: "10mb" })); // Increase the limit to 10MB
+app.use(express.json({ limit: "20mb" })); // Increase the limit to 10MB
 
 // Middleware to parse cookies
 app.use(cookieParser());
