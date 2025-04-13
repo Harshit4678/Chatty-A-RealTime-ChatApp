@@ -14,10 +14,10 @@ const ProfilePage = () => {
     if (!file) return;
 
     try {
-      // Compress the image
+      console.log("Compressing image...");
       const compressedFile = await imageCompression(file, {
-        maxSizeMB: 0.4, // Limit the size to 0.6MB
-        maxWidthOrHeight: 360, // Resize to a maximum dimension of 480px
+        maxSizeMB: 0.4, // Limit the size to 0.4MB
+        maxWidthOrHeight: 360, // Resize to a maximum dimension of 360px
       });
 
       const reader = new FileReader();
@@ -25,10 +25,9 @@ const ProfilePage = () => {
 
       reader.onload = async () => {
         const base64Image = reader.result;
+        // console.log("Compressed image:", base64Image);
         setSelectedImg(base64Image);
-        console.log("Compressed image:", base64Image);
         await updateProfile({ profilePic: base64Image });
-        toast.success("Profile picture updated successfully!");
       };
     } catch (error) {
       console.error("Error compressing or uploading image:", error);

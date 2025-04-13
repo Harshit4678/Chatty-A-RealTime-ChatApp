@@ -35,7 +35,8 @@ io.on("connection", (socket) => {
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("incoming-call", {
         offer,
-        from, // includes fullName, profilePic, _id
+        from,
+        senderSocketId: socket.id, // ADD THIS LINE
       });
     } else {
       io.to(socket.id).emit("call-error", { message: "User is not online." });

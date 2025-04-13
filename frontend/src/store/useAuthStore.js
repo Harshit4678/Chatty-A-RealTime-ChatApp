@@ -83,8 +83,12 @@ export const useAuthStore = create((set, get) => ({
         data,
         { withCredentials: true }
       );
-      set({ authUser: response.data }); // Update the user state
-      toast.success("Profile updated successfully!");
+      if (response.status === 200) {
+        set({ authUser: response.data }); // Update the user state
+        toast.success("Profile updated successfully!");
+      } else {
+        throw new Error("Unexpected response status");
+      }
     } catch (error) {
       console.error(
         "Error updating profile:",
@@ -114,9 +118,14 @@ export const useAuthStore = create((set, get) => ({
     });
 
     // Listen for incoming calls
-    socket.on("incoming-call", ({ from, offer }) => {
+    socket.on("incoming-call", ({ from, offer, senderSocketId }) => {
+      const { socket } = useAuthStore.getState();
       const { setIncomingCall, setVideoCallActive } =
         useVideoCallStore.getState();
+
+      // Ignore if this client is the caller (prevents popup on caller side)
+      if (socket.id === senderSocketId) return;
+
       setIncomingCall({ from, offer });
       setVideoCallActive(true);
     });
