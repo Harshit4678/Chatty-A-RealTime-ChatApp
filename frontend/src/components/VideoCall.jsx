@@ -14,7 +14,7 @@ const VideoCall = ({ onEndCall, isCaller: initialIsCaller = false }) => {
   const localStreamRef = useRef(null);
 
   const [isCaller] = useState(initialIsCaller);
-  const [isConnecting, setIsConnecting] = useState(true);
+  const [isConnecting] = useState(true);
 
   useEffect(() => {
     const setupMedia = async () => {
