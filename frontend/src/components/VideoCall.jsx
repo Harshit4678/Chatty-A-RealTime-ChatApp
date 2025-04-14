@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
+import { useVideoCallStore } from "../store/useVideoCallStore";
 import VideoCallLayout from "./VideoCall/VideoCallLayout";
 import VideoCallControls from "./VideoCall/VideoCallControls";
 
 const VideoCall = ({ onEndCall, isCaller: initialIsCaller = false }) => {
   const { authUser, socket } = useAuthStore();
   const { selectedUser } = useChatStore();
+  const { incomingCall } = useVideoCallStore();
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -14,7 +16,7 @@ const VideoCall = ({ onEndCall, isCaller: initialIsCaller = false }) => {
   const localStreamRef = useRef(null);
 
   const [isCaller] = useState(initialIsCaller);
-  const [isConnecting] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(true);
 
   useEffect(() => {
     const setupMedia = async () => {
@@ -28,6 +30,8 @@ const VideoCall = ({ onEndCall, isCaller: initialIsCaller = false }) => {
 
         if (isCaller) {
           initiateCall();
+        } else {
+          setupReceiver();
         }
       } catch (error) {
         console.error("Error accessing media devices:", error);
@@ -36,17 +40,53 @@ const VideoCall = ({ onEndCall, isCaller: initialIsCaller = false }) => {
     };
 
     const initiateCall = () => {
-      // Initialize the peer connection
-      peerConnection.current = new RTCPeerConnection();
+      createPeerConnection();
 
-      // Add local tracks to the peer connection
       localStreamRef.current.getTracks().forEach((track) => {
         peerConnection.current.addTrack(track, localStreamRef.current);
       });
 
-      // Set up event listeners for the peer connection
+      peerConnection.current
+        .createOffer()
+        .then((offer) => {
+          peerConnection.current.setLocalDescription(offer);
+          socket.emit("call-user", {
+            offer,
+            to: selectedUser._id,
+            from: authUser._id,
+          });
+        })
+        .catch((error) => console.error("Error creating offer:", error));
+    };
+
+    const setupReceiver = () => {
+      createPeerConnection();
+
+      localStreamRef.current.getTracks().forEach((track) => {
+        peerConnection.current.addTrack(track, localStreamRef.current);
+      });
+
+      if (incomingCall?.offer) {
+        peerConnection.current
+          .setRemoteDescription(new RTCSessionDescription(incomingCall.offer))
+          .then(() => peerConnection.current.createAnswer())
+          .then((answer) => {
+            peerConnection.current.setLocalDescription(answer);
+            socket.emit("accept-call", {
+              to: incomingCall.from._id,
+              answer,
+            });
+          })
+          .catch((err) => console.error("Error handling incoming offer:", err));
+      }
+    };
+
+    const createPeerConnection = () => {
+      peerConnection.current = new RTCPeerConnection();
+
       peerConnection.current.ontrack = (event) => {
         remoteVideoRef.current.srcObject = event.streams[0];
+        setIsConnecting(false);
       };
 
       peerConnection.current.onicecandidate = (event) => {
@@ -65,18 +105,24 @@ const VideoCall = ({ onEndCall, isCaller: initialIsCaller = false }) => {
         }
       };
 
-      // Create and send an offer
-      peerConnection.current
-        .createOffer()
-        .then((offer) => {
-          peerConnection.current.setLocalDescription(offer);
-          socket.emit("call-user", {
-            offer,
-            to: selectedUser._id,
-            from: authUser._id,
-          });
-        })
-        .catch((error) => console.error("Error creating offer:", error));
+      socket.on("call-accepted", async ({ answer }) => {
+        try {
+          await peerConnection.current.setRemoteDescription(
+            new RTCSessionDescription(answer)
+          );
+          setIsConnecting(false);
+        } catch (err) {
+          console.error("Error setting remote description:", err);
+        }
+      });
+
+      socket.on("receive-ice-candidate", ({ candidate }) => {
+        if (peerConnection.current) {
+          peerConnection.current.addIceCandidate(
+            new RTCIceCandidate(candidate)
+          );
+        }
+      });
     };
 
     setupMedia();
@@ -84,7 +130,7 @@ const VideoCall = ({ onEndCall, isCaller: initialIsCaller = false }) => {
     return () => {
       endCall();
     };
-  }, [isCaller, socket, selectedUser, onEndCall]);
+  }, [isCaller, socket, selectedUser, onEndCall, incomingCall, authUser._id]);
 
   const endCall = () => {
     if (peerConnection.current) {

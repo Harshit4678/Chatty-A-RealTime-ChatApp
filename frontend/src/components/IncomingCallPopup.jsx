@@ -6,20 +6,12 @@ const IncomingCallPopup = () => {
   const { incomingCall, setIncomingCall, setInCall } = useVideoCallStore();
   const { socket, authUser } = useAuthStore();
 
-  // If there's no incoming call or the call is from the current user, don't show the popup
   if (!incomingCall || incomingCall.from._id === authUser._id) return null;
 
-  const handleAccept = async () => {
-    try {
-      setInCall(true);
-      socket.emit("accept-call", {
-        to: incomingCall.from._id,
-        answer: true,
-      });
-      setIncomingCall(null);
-    } catch (error) {
-      console.error("Error accepting call:", error);
-    }
+  const handleAccept = () => {
+    setInCall(true);
+    setIncomingCall(null);
+    // VideoCall.jsx will handle connection now
   };
 
   const handleReject = () => {
