@@ -21,9 +21,8 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosIntance.get("/auth/check");
       set({ authUser: res.data });
-      get().connectSocket();
+      get().connectSocket(); // connect after auth
     } catch {
-      // Only show "Session expired" if the user was previously logged in
       if (get().authUser) {
         toast.error("Session expired. Please log in again.");
       }
@@ -53,7 +52,6 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosIntance.post("/auth/login", data);
       set({ authUser: res.data });
       toast.success("Logged in successfully");
-
       get().connectSocket();
     } catch (error) {
       toast.error(error.response.data.message);
@@ -73,35 +71,12 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  updateProfile: async (data) => {
-    set({ isUpdatingProfile: true });
-    try {
-      const response = await axiosIntance.put("/auth/update-profile", data);
-      if (response.status === 200) {
-        set({ authUser: response.data }); // Update the user state
-        toast.success("Profile updated successfully!");
-      } else {
-        throw new Error("Unexpected response status");
-      }
-    } catch (error) {
-      console.error(
-        "Error updating profile:",
-        error.response?.data || error.message
-      );
-      toast.error(error.response?.data?.message || "Failed to update profile");
-    } finally {
-      set({ isUpdatingProfile: false });
-    }
-  },
-
   connectSocket: () => {
     const { authUser } = get();
     if (!authUser || get().socket?.connected) return;
 
     const socket = io(BASE_URL, {
-      query: {
-        userId: authUser._id,
-      },
+      query: { userId: authUser._id },
     });
 
     socket.connect();
@@ -111,14 +86,13 @@ export const useAuthStore = create((set, get) => ({
       set({ onlineUsers: userIds });
     });
 
-    // Listen for incoming calls
+    // ✅ Important: incoming-call listener for receiver
     socket.on("incoming-call", ({ from, offer, senderSocketId }) => {
-      const { socket } = useAuthStore.getState();
+      const { socket } = get();
       const { setIncomingCall, setVideoCallActive } =
         useVideoCallStore.getState();
 
-      // Ignore if this client is the caller (prevents popup on caller side)
-      if (socket.id === senderSocketId) return;
+      if (socket.id === senderSocketId) return; // ignore own call
 
       setIncomingCall({ from, offer });
       setVideoCallActive(true);

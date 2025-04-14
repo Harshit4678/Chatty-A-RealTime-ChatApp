@@ -10,6 +10,7 @@ import SettingsPage from "./pages/SettingsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import IncomingCallPopup from "./components/IncomingCallPopup.jsx";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth, onlineUsers } = useAuthStore();
@@ -36,7 +37,6 @@ const App = () => {
   return (
     <div>
       <Navbar />
-
       <Routes>
         <Route
           path="/"
@@ -59,7 +59,7 @@ const App = () => {
           element={authUser ? <ProfilePage /> : <Navigate to="/login" />}
         />
       </Routes>
-
+      <IncomingCallPopup />
       <Toaster />
     </div>
   );

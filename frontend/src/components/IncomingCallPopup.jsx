@@ -11,7 +11,7 @@ const IncomingCallPopup = () => {
   const handleAccept = () => {
     setInCall(true);
     setIncomingCall(null);
-    // VideoCall.jsx will handle connection now
+    // VideoCall component handles rest
   };
 
   const handleReject = () => {
