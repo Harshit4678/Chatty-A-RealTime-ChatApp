@@ -27,54 +27,19 @@ io.on("connection", (socket) => {
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   }
 
-  // Handle call initiation
-  socket.on("call-user", ({ offer, to, from }) => {
-    const receiverSocketId = getReceiverSocketId(to);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("incoming-call", {
-        from,
-        offer,
-        senderSocketId: socket.id,
-      });
-    } else {
-      io.to(socket.id).emit("call-error", { message: "User is offline." });
-    }
-  });
-
-  // Handle call acceptance
-  socket.on("accept-call", ({ to, answer }) => {
-    const receiverSocketId = getReceiverSocketId(to);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("call-accepted", { answer });
-    }
-  });
-
-  // Handle call rejection
-  socket.on("reject-call", ({ to }) => {
-    const receiverSocketId = getReceiverSocketId(to);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("call-rejected");
-    }
-  });
-
-  // Handle ICE candidate exchange
-  socket.on("send-ice-candidate", ({ candidate, to }) => {
-    const receiverSocketId = getReceiverSocketId(to);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("receive-ice-candidate", { candidate });
-    }
-  });
-
   // Handle user disconnection
   socket.on("disconnect", () => {
     console.log("A user disconnected", socket.id);
-    for (const [userId, socketId] of Object.entries(userSocketMap)) {
-      if (socketId === socket.id) {
-        delete userSocketMap[userId];
-        break;
-      }
+    const userId = Object.keys(userSocketMap).find(
+      (key) => userSocketMap[key] === socket.id
+    );
+
+    if (userId) {
+      delete userSocketMap[userId];
+      io.emit("getOnlineUsers", Object.keys(userSocketMap));
+      // Notify other users if there was an active call
+      io.emit("user-disconnected", { userId });
     }
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 });
 

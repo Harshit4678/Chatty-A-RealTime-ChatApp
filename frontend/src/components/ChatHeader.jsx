@@ -3,20 +3,12 @@ import { useChatStore } from "../store/useChatStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import toast from "react-hot-toast";
 import { useState } from "react";
-import VideoCall from "./VideoCall.jsx";
-import { useVideoCallStore } from "../store/useVideoCallStore.js";
-import IncomingCallPopup from "./IncomingCallPopup.jsx";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser, clearChat, deleteChat } =
     useChatStore();
   const { onlineUsers } = useAuthStore();
-  const isVideoCallActive = useVideoCallStore(
-    (state) => state.isVideoCallActive
-  );
-  const setIsVideoCallActive = useVideoCallStore(
-    (state) => state.setVideoCallActive
-  );
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleDeleteChat = async () => {
@@ -41,18 +33,6 @@ const ChatHeader = () => {
       console.error("Error clearing chat history:", error);
       toast.error("Failed to clear chat history");
     }
-  };
-
-  const startVideoCall = () => {
-    if (!onlineUsers.includes(selectedUser._id)) {
-      toast.error("User is offline. Cannot start a video call.");
-      return;
-    }
-    setIsVideoCallActive(true);
-  };
-
-  const endVideoCall = () => {
-    setIsVideoCallActive(false);
   };
 
   return (
@@ -83,10 +63,7 @@ const ChatHeader = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={startVideoCall}
-            className="btn btn-sm btn-circle flex items-center gap-2"
-          >
+          <button className="btn btn-sm btn-circle flex items-center gap-2">
             <VideoIcon size={18} />
           </button>
 
@@ -136,9 +113,6 @@ const ChatHeader = () => {
           </div>
         </div>
       </div>
-
-      {isVideoCallActive && <VideoCall onEndCall={endVideoCall} />}
-      <IncomingCallPopup />
     </div>
   );
 };
