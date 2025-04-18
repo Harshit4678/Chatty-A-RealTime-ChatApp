@@ -11,6 +11,8 @@ const ChatHeader = () => {
   const { onlineUsers, socket, authUser } = useAuthStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [callSeconds, setCallSeconds] = useState(0);
+  const timerRef = useRef(null);
 
   // Video call states
   const [isCallOpen, setIsCallOpen] = useState(false);
@@ -37,6 +39,20 @@ const ChatHeader = () => {
     peerConnectionRef.current = null;
     setIsInCall(false);
     setIsCaller(false);
+    stopTimer();
+  };
+
+  const startTimer = () => {
+    setCallSeconds(0);
+    timerRef.current = setInterval(() => {
+      setCallSeconds((prev) => prev + 1);
+    }, 1000);
+  };
+
+  const stopTimer = () => {
+    clearInterval(timerRef.current);
+    timerRef.current = null;
+    setCallSeconds(0);
   };
 
   // Handle call offer
@@ -57,6 +73,7 @@ const ChatHeader = () => {
       if (pc) {
         await pc.setRemoteDescription(new window.RTCSessionDescription(answer));
         setIsInCall(true);
+        startTimer();
       }
     });
 
@@ -151,6 +168,7 @@ const ChatHeader = () => {
   // Accept incoming call
   const acceptCall = async () => {
     setIsInCall(true);
+    startTimer();
     setIsCaller(false);
 
     let stream = null;
@@ -342,6 +360,7 @@ const ChatHeader = () => {
         remoteStream={remoteStream}
         isInCall={isInCall}
         isCaller={isCaller}
+        callSeconds={callSeconds}
       />
     </div>
   );

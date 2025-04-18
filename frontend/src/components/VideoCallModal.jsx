@@ -9,10 +9,16 @@ const VideoCallModal = ({
   localStream,
   remoteStream,
   isInCall,
-  isCaller,
+  callSeconds,
+  //   isCaller,
 }) => {
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
+  const formatTime = (secs) => {
+    const m = String(Math.floor(secs / 60)).padStart(2, "0");
+    const s = String(secs % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  };
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -26,7 +32,7 @@ const VideoCallModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div className="fixed top-40 inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-4 flex flex-col items-center gap-4 relative w-[400px] h-[350px]">
         {isInCall ? (
           <div className="relative w-full h-full">
@@ -48,6 +54,9 @@ const VideoCallModal = ({
             >
               End Call
             </button>
+            <div className="absolute top-2 left-2 bg-black bg-opacity-60 text-white px-3 py-1 rounded text-sm font-mono z-20">
+              {formatTime(callSeconds)}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full w-full">
