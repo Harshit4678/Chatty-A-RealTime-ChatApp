@@ -68,6 +68,14 @@ io.on("connection", (socket) => {
       io.to(receiverSocketId).emit("call-ended");
     }
   });
+
+  // Handle call declined
+  socket.on("call-declined", ({ to }) => {
+    const receiverSocketId = getReceiverSocketId(to);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("call-declined");
+    }
+  });
 });
 
 export { io, app, server };

@@ -14,6 +14,8 @@ const ChatHeader = () => {
 
   // Video call states
   const [isCallOpen, setIsCallOpen] = useState(false);
+  const [isInCall, setIsInCall] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null); // { from, offer }
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [isCaller, setIsCaller] = useState(false);
@@ -24,45 +26,28 @@ const ChatHeader = () => {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   };
 
+  // Cleanup function
+  const cleanupMedia = () => {
+    setLocalStream((stream) => {
+      stream?.getTracks().forEach((track) => track.stop());
+      return null;
+    });
+    setRemoteStream(null);
+    peerConnectionRef.current?.close();
+    peerConnectionRef.current = null;
+    setIsInCall(false);
+    setIsCaller(false);
+  };
+
   // Handle call offer
   useEffect(() => {
     if (!socket) return;
 
     // Receive call offer
-    socket.on("call-offer", async ({ from, offer }) => {
+    socket.on("call-offer", ({ from, offer }) => {
       if (from === selectedUser._id) {
+        setIncomingCall({ from, offer });
         setIsCallOpen(true);
-        setIsCaller(false);
-
-        const pc = new RTCPeerConnection(iceServers);
-        peerConnectionRef.current = pc;
-
-        pc.ontrack = (event) => {
-          setRemoteStream(event.streams[0]);
-        };
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        setLocalStream(stream);
-        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        socket.emit("call-answer", {
-          to: from,
-          answer,
-        });
-        pc.onicecandidate = (event) => {
-          if (event.candidate) {
-            socket.emit("ice-candidate", {
-              to: from,
-              candidate: event.candidate,
-            });
-          }
-        };
       }
     });
 
@@ -70,7 +55,8 @@ const ChatHeader = () => {
     socket.on("call-answer", async ({ answer }) => {
       const pc = peerConnectionRef.current;
       if (pc) {
-        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        await pc.setRemoteDescription(new window.RTCSessionDescription(answer));
+        setIsInCall(true);
       }
     });
 
@@ -78,13 +64,24 @@ const ChatHeader = () => {
     socket.on("ice-candidate", async ({ candidate }) => {
       const pc = peerConnectionRef.current;
       if (pc && candidate) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        await pc.addIceCandidate(new window.RTCIceCandidate(candidate));
       }
     });
 
     // Handle call end
     socket.on("call-ended", () => {
-      endCall();
+      toast("Call ended");
+      setIsCallOpen(false);
+      setIncomingCall(null);
+      cleanupMedia();
+    });
+
+    // Handle call declined
+    socket.on("call-declined", () => {
+      toast("Call declined");
+      setIsCallOpen(false);
+      setIncomingCall(null);
+      cleanupMedia();
     });
 
     return () => {
@@ -92,6 +89,7 @@ const ChatHeader = () => {
       socket.off("call-answer");
       socket.off("ice-candidate");
       socket.off("call-ended");
+      socket.off("call-declined");
     };
     // eslint-disable-next-line
   }, [socket, selectedUser]);
@@ -104,19 +102,31 @@ const ChatHeader = () => {
     }
     setIsCallOpen(true);
     setIsCaller(true);
+    setIsInCall(false);
 
-    const pc = new RTCPeerConnection(iceServers);
+    let stream = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+    } catch {
+      toast.error(
+        "Could not access camera/microphone. Please check device and permissions."
+      );
+      setIsCallOpen(false);
+      setIsCaller(false);
+      return;
+    }
+    setLocalStream(stream);
+
+    const pc = new window.RTCPeerConnection(iceServers);
     peerConnectionRef.current = pc;
 
     pc.ontrack = (event) => {
       setRemoteStream(event.streams[0]);
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    setLocalStream(stream);
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
     const offer = await pc.createOffer();
@@ -137,20 +147,81 @@ const ChatHeader = () => {
       }
     };
   };
-  // End call
-  const endCall = () => {
-    setIsCallOpen(false);
+
+  // Accept incoming call
+  const acceptCall = async () => {
+    setIsInCall(true);
     setIsCaller(false);
-    setLocalStream((stream) => {
-      stream?.getTracks().forEach((track) => track.stop());
-      return null;
+
+    let stream = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+    } catch {
+      toast.error(
+        "Could not access camera/microphone. Please check device and permissions."
+      );
+      setIsCallOpen(false);
+      setIncomingCall(null);
+      return;
+    }
+    setLocalStream(stream);
+
+    const pc = new window.RTCPeerConnection(iceServers);
+    peerConnectionRef.current = pc;
+
+    pc.ontrack = (event) => {
+      setRemoteStream(event.streams[0]);
+    };
+
+    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+    await pc.setRemoteDescription(
+      new window.RTCSessionDescription(incomingCall.offer)
+    );
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    socket.emit("call-answer", {
+      to: incomingCall.from,
+      answer,
     });
-    setRemoteStream(null);
-    peerConnectionRef.current?.close();
-    peerConnectionRef.current = null;
-    socket.emit("call-ended", { to: selectedUser._id });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit("ice-candidate", {
+          to: incomingCall.from,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    setIncomingCall(null);
   };
 
+  // Decline incoming call
+  const declineCall = () => {
+    socket.emit("call-declined", { to: incomingCall.from });
+    setIsCallOpen(false);
+    setIncomingCall(null);
+    cleanupMedia();
+  };
+
+  // End call
+  const endCall = () => {
+    if (isCaller) {
+      socket.emit("call-ended", { to: selectedUser._id });
+    } else if (incomingCall) {
+      socket.emit("call-ended", { to: incomingCall.from });
+    }
+    setIsCallOpen(false);
+    setIncomingCall(null);
+    cleanupMedia();
+  };
+
+  // Delete chat
   const handleDeleteChat = async () => {
     if (window.confirm("Are you sure you want to delete this chat?")) {
       try {
@@ -164,6 +235,7 @@ const ChatHeader = () => {
     }
   };
 
+  // Clear chat history
   const handleClearChatHistory = async () => {
     try {
       await clearChat();
@@ -262,10 +334,13 @@ const ChatHeader = () => {
       {/* Video Call Modal */}
       <VideoCallModal
         isOpen={isCallOpen}
-        onClose={endCall}
+        incomingCall={incomingCall}
+        onAccept={acceptCall}
+        onDecline={declineCall}
+        onEndCall={endCall}
         localStream={localStream}
         remoteStream={remoteStream}
-        onEndCall={endCall}
+        isInCall={isInCall}
         isCaller={isCaller}
       />
     </div>
