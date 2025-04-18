@@ -2,14 +2,154 @@ import { MoreVertical, Trash2, X, VideoIcon } from "lucide-react";
 import { useChatStore } from "../store/useChatStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import toast from "react-hot-toast";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import VideoCallModal from "./VideoCallModal";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser, clearChat, deleteChat } =
     useChatStore();
-  const { onlineUsers } = useAuthStore();
+  const { onlineUsers, socket, authUser } = useAuthStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Video call states
+  const [isCallOpen, setIsCallOpen] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [isCaller, setIsCaller] = useState(false);
+  const peerConnectionRef = useRef(null);
+
+  // ICE servers for WebRTC
+  const iceServers = {
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  };
+
+  // Handle call offer
+  useEffect(() => {
+    if (!socket) return;
+
+    // Receive call offer
+    socket.on("call-offer", async ({ from, offer }) => {
+      if (from === selectedUser._id) {
+        setIsCallOpen(true);
+        setIsCaller(false);
+
+        const pc = new RTCPeerConnection(iceServers);
+        peerConnectionRef.current = pc;
+
+        pc.ontrack = (event) => {
+          setRemoteStream(event.streams[0]);
+        };
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        setLocalStream(stream);
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socket.emit("call-answer", {
+          to: from,
+          answer,
+        });
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit("ice-candidate", {
+              to: from,
+              candidate: event.candidate,
+            });
+          }
+        };
+      }
+    });
+
+    // Receive call answer
+    socket.on("call-answer", async ({ answer }) => {
+      const pc = peerConnectionRef.current;
+      if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      }
+    });
+
+    // Receive ICE candidate
+    socket.on("ice-candidate", async ({ candidate }) => {
+      const pc = peerConnectionRef.current;
+      if (pc && candidate) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    });
+
+    // Handle call end
+    socket.on("call-ended", () => {
+      endCall();
+    });
+
+    return () => {
+      socket.off("call-offer");
+      socket.off("call-answer");
+      socket.off("ice-candidate");
+      socket.off("call-ended");
+    };
+    // eslint-disable-next-line
+  }, [socket, selectedUser]);
+
+  // Start a call
+  const startCall = async () => {
+    if (!selectedUser || !onlineUsers.includes(selectedUser._id)) {
+      toast.error("User is not online");
+      return;
+    }
+    setIsCallOpen(true);
+    setIsCaller(true);
+
+    const pc = new RTCPeerConnection(iceServers);
+    peerConnectionRef.current = pc;
+
+    pc.ontrack = (event) => {
+      setRemoteStream(event.streams[0]);
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    setLocalStream(stream);
+    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    socket.emit("call-offer", {
+      to: selectedUser._id,
+      from: authUser._id,
+      offer,
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit("ice-candidate", {
+          to: selectedUser._id,
+          candidate: event.candidate,
+        });
+      }
+    };
+  };
+  // End call
+  const endCall = () => {
+    setIsCallOpen(false);
+    setIsCaller(false);
+    setLocalStream((stream) => {
+      stream?.getTracks().forEach((track) => track.stop());
+      return null;
+    });
+    setRemoteStream(null);
+    peerConnectionRef.current?.close();
+    peerConnectionRef.current = null;
+    socket.emit("call-ended", { to: selectedUser._id });
+  };
 
   const handleDeleteChat = async () => {
     if (window.confirm("Are you sure you want to delete this chat?")) {
@@ -63,8 +203,14 @@ const ChatHeader = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="btn btn-sm btn-circle flex items-center gap-2">
-            <VideoIcon size={18} />
+          {/* Video Call Button */}
+          <button
+            className="btn btn-sm btn-circle"
+            title="Video Call"
+            onClick={startCall}
+            disabled={!onlineUsers.includes(selectedUser._id)}
+          >
+            <VideoIcon size={20} />
           </button>
 
           <div className="relative">
@@ -113,6 +259,15 @@ const ChatHeader = () => {
           </div>
         </div>
       </div>
+      {/* Video Call Modal */}
+      <VideoCallModal
+        isOpen={isCallOpen}
+        onClose={endCall}
+        localStream={localStream}
+        remoteStream={remoteStream}
+        onEndCall={endCall}
+        isCaller={isCaller}
+      />
     </div>
   );
 };

@@ -41,6 +41,33 @@ io.on("connection", (socket) => {
       io.emit("user-disconnected", { userId });
     }
   });
+
+  // Video call signaling
+  socket.on("call-offer", ({ to, from, offer }) => {
+    const receiverSocketId = getReceiverSocketId(to);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("call-offer", { from, offer });
+    }
+  });
+  socket.on("call-answer", ({ to, answer }) => {
+    const receiverSocketId = getReceiverSocketId(to);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("call-answer", { answer });
+    }
+  });
+  socket.on("ice-candidate", ({ to, candidate }) => {
+    const receiverSocketId = getReceiverSocketId(to);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("ice-candidate", { candidate });
+    }
+  });
+
+  socket.on("call-ended", ({ to }) => {
+    const receiverSocketId = getReceiverSocketId(to);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("call-ended");
+    }
+  });
 });
 
 export { io, app, server };
