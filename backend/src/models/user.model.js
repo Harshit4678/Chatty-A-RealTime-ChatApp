@@ -1,5 +1,13 @@
 import mongoose from "mongoose";
 
+const unreadMessageSchema = new mongoose.Schema(
+  {
+    from: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    count: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -20,6 +28,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    unreadMessages: [unreadMessageSchema], // <-- Add this line
   },
   { timestamps: true }
 );

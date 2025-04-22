@@ -3,6 +3,7 @@ import { useChatStore } from "../store/useChatStore.js";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton.jsx";
 import { Users } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
+import { Tooltip } from "react-tooltip"; // Import react-tooltip
 
 const Sidebar = () => {
   const { getUsers, users, selectedUser, setSelectedUser, isUserLoading } =
@@ -15,9 +16,18 @@ const Sidebar = () => {
     getUsers();
   }, [getUsers]);
 
+  // Sort users: unread first, then by online status, then by name
+  const sortedUsers = [...users].sort((a, b) => {
+    if (b.unreadCount !== a.unreadCount) return b.unreadCount - a.unreadCount;
+    if (onlineUsers.includes(b._id) !== onlineUsers.includes(a._id)) {
+      return onlineUsers.includes(b._id) ? 1 : -1;
+    }
+    return a.fullName.localeCompare(b.fullName);
+  });
+
   const filteredUsers = showOnlineOnly
-    ? users.filter((user) => onlineUsers.includes(user._id))
-    : users;
+    ? sortedUsers.filter((user) => onlineUsers.includes(user._id))
+    : sortedUsers;
 
   if (isUserLoading) return <SidebarSkeleton />;
 
@@ -73,11 +83,38 @@ const Sidebar = () => {
                   rounded-full ring-2 ring-zinc-900"
                 />
               )}
+              {/* Unread badge with tooltip */}
+              {user.unreadCount > 0 && (
+                <>
+                  <span
+                    className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] flex items-center justify-center shadow"
+                    style={{ fontSize: "0.75rem" }}
+                    data-tip={`${user.unreadCount} unread message${
+                      user.unreadCount > 1 ? "s" : ""
+                    }`}
+                    data-for={`unread-tooltip-${user._id}`}
+                  >
+                    {user.unreadCount}
+                  </span>
+                  <Tooltip
+                    id={`unread-tooltip-${user._id}`}
+                    place="top"
+                    effect="solid"
+                  />
+                </>
+              )}
             </div>
 
             {/* User info - only visible on larger screens */}
             <div className="hidden lg:block text-left min-w-0">
-              <div className="font-medium truncate">{user.fullName}</div>
+              <div className="font-medium truncate flex items-center gap-2">
+                {user.fullName}
+                {user.unreadCount > 0 && (
+                  <span className="ml-2 text-xs text-red-500 font-semibold animate-pulse">
+                    New Message
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-zinc-400">
                 {onlineUsers.includes(user._id) ? "Online" : "Offline"}
               </div>

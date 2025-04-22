@@ -1,7 +1,7 @@
 import { Camera, Mail, User } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useState } from "react";
-import axios from "axios";
+import { axiosIntance } from "../lib/axios";
 import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 
@@ -38,7 +38,7 @@ const ProfilePage = () => {
   const handleDeleteAccount = async () => {
     if (window.confirm("Are you sure you want to delete your account?")) {
       try {
-        await axios.delete("http://localhost:3000/api/auth/delete-account", {
+        await axiosIntance.delete("/auth/delete-account", {
           withCredentials: true,
         });
         toast.success("Account deleted successfully");

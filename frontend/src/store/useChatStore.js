@@ -27,6 +27,8 @@ export const useChatStore = create((set, get) => ({
     try {
       const res = await axiosIntance.get(`/messages/${userId}`);
       set({ messages: res.data });
+      // Refresh users to update unread counts after opening chat
+      get().getUsers();
     } catch (error) {
       toast.error(error.response.data.message);
     } finally {
@@ -53,24 +55,54 @@ export const useChatStore = create((set, get) => ({
 
   subscribeToMessages: () => {
     const { selectedUser } = get();
-    if (!selectedUser) return;
-
     const socket = useAuthStore.getState().socket;
+    if (!selectedUser || !socket) return;
+
+    // Remove previous listener to avoid duplicates
+    socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
-      if (newMessage.senderId !== selectedUser._id) return;
-      set({
-        messages: [...get().messages, newMessage],
-      });
+      console.log("Received newMessage:", newMessage, selectedUser);
+      if (newMessage.senderId === selectedUser._id) {
+        set({
+          messages: [...get().messages, newMessage],
+        });
+        // Show live indicator for a short time
+        if (typeof window !== "undefined" && window.dispatchEvent) {
+          console.log("Dispatching show-live-indicator event");
+          window.dispatchEvent(new CustomEvent("show-live-indicator"));
+        }
+      }
+      get().getUsers();
     });
   },
-
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
+    if (socket) {
+      socket.off("newMessage");
+    }
   },
 
-  //todo: optimize this on later
+  initializeSidebarSocket: () => {
+    const socket = useAuthStore.getState().socket;
+    if (!socket) return;
+
+    socket.on("newMessage", () => {
+      get().getUsers();
+    });
+
+    // Update: Use seenBy from backend to update correct messages
+    socket.on("messagesSeen", ({ seenBy }) => {
+      const { messages } = get();
+      const myId = useAuthStore.getState().authUser._id;
+      const updatedMessages = messages.map((msg) =>
+        msg.senderId === myId && msg.receiverId === seenBy
+          ? { ...msg, seen: true }
+          : msg
+      );
+      set({ messages: updatedMessages });
+    });
+  },
   setSelectedUser: (selectedUser) => set({ selectedUser }),
 
   deleteChat: async (userId) => {

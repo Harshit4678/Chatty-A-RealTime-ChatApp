@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "../store/useChatStore.js";
 import ChatHeader from "./ChatHeader.jsx";
 import MessageInput from "./MessageInput.jsx";
@@ -17,7 +17,18 @@ const ChatContainer = () => {
     unsubscribeFromMessages,
   } = useChatStore();
   const { authUser } = useAuthStore();
+  const [showLiveIndicator, setShowLiveIndicator] = useState(false);
   const messageEndRef = useRef();
+
+  useEffect(() => {
+    const handler = () => {
+      console.log("show-live-indicator event received");
+      setShowLiveIndicator(true);
+      setTimeout(() => setShowLiveIndicator(false), 1500); // 1.5 seconds
+    };
+    window.addEventListener("show-live-indicator", handler);
+    return () => window.removeEventListener("show-live-indicator", handler);
+  }, []);
 
   useEffect(() => {
     getMessages(selectedUser._id);
@@ -53,6 +64,14 @@ const ChatContainer = () => {
         <ChatHeader />
       </div>
       <div className="flex-1  flex flex-col overflow-auto">
+        {/* Live indicator for new message */}
+        {showLiveIndicator && (
+          <div className="flex justify-center mb-2">
+            <span className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs animate-pulse transition-all duration-300">
+              New Message
+            </span>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
             <div
@@ -80,7 +99,7 @@ const ChatContainer = () => {
                   {formatMessageTime(message.createdAt)}
                 </time>
               </div>
-              <div className="chat-bubble flex flex-col">
+              <div className="chat-bubble flex flex-col transition-all duration-300 ease-in animate-fade-in">
                 {message.image && (
                   <img
                     src={message.image}
@@ -89,6 +108,12 @@ const ChatContainer = () => {
                   />
                 )}
                 {message.text && <p>{message.text}</p>}
+                {/* Read receipt for messages sent by current user */}
+                {message.senderId === authUser._id && (
+                  <span className="ml-auto mt-1 text-xs text-gray-400 select-none">
+                    {message.seen ? "✓✓" : "✓"}
+                  </span>
+                )}
               </div>
             </div>
           ))}
