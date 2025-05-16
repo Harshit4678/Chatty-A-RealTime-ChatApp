@@ -58,18 +58,21 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     if (!selectedUser || !socket) return;
 
-    // Remove previous listener to avoid duplicates
     socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
-      console.log("Received newMessage:", newMessage, selectedUser);
-      if (newMessage.senderId === selectedUser._id) {
+      // If the message is for the currently open chat, just append it
+      if (
+        newMessage.senderId === selectedUser._id ||
+        newMessage.receiverId === selectedUser._id // covers both directions
+      ) {
         set({
           messages: [...get().messages, newMessage],
         });
-        // Show live indicator for a short time
+        // Do NOT show live indicator for open chat
+      } else {
+        // Show live indicator for other chats
         if (typeof window !== "undefined" && window.dispatchEvent) {
-          console.log("Dispatching show-live-indicator event");
           window.dispatchEvent(new CustomEvent("show-live-indicator"));
         }
       }
@@ -91,7 +94,6 @@ export const useChatStore = create((set, get) => ({
       get().getUsers();
     });
 
-    // Update: Use seenBy from backend to update correct messages
     socket.on("messagesSeen", ({ seenBy }) => {
       const { messages } = get();
       const myId = useAuthStore.getState().authUser._id;
